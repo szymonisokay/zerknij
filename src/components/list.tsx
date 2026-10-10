@@ -27,12 +27,14 @@ type RowProps = {
   subtitle?: string;
   onPress: () => void;
   disabled?: boolean;
+  /** Niższy wiersz (52 zamiast 60) – na ekranie startowym, gdzie liczy się każdy piksel. */
+  dense?: boolean;
 } & (
   | { switchValue: boolean; value?: never; chevron?: never }
   | { switchValue?: never; value?: string; chevron?: boolean }
 );
 
-export function ListRow({ title, subtitle, onPress, disabled, switchValue, value, chevron }: RowProps) {
+export function ListRow({ title, subtitle, onPress, disabled, dense, switchValue, value, chevron }: RowProps) {
   const isSwitch = switchValue !== undefined;
   const titleColor = disabled ? colors.textDisabled : colors.text;
   const mutedColor = disabled ? colors.textDisabled : colors.textMuted;
@@ -44,7 +46,7 @@ export function ListRow({ title, subtitle, onPress, disabled, switchValue, value
       scaleTo={1}
       accessibilityRole={isSwitch ? 'switch' : 'button'}
       accessibilityState={isSwitch ? { checked: switchValue, disabled } : { disabled }}
-      style={styles.row}
+      style={[styles.row, dense && styles.dense]}
       pressedStyle={{ backgroundColor: colors.surfacePressed }}>
       <View style={styles.texts}>
         <Text style={[type.body, styles.title, { color: titleColor }]}>{title}</Text>
@@ -71,6 +73,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     gap: space.sm,
+  },
+  dense: {
+    minHeight: 52,
+    paddingVertical: space.xs,
   },
   texts: {
     flex: 1,

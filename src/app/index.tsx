@@ -76,8 +76,14 @@ export default function StartScreen() {
 
         <View style={styles.section}>
           <ListGroup>
-            <ListRow title="Dźwięk" switchValue={settings.sound} onPress={() => updateSettings({ sound: !settings.sound })} />
             <ListRow
+              dense
+              title="Dźwięk"
+              switchValue={settings.sound}
+              onPress={() => updateSettings({ sound: !settings.sound })}
+            />
+            <ListRow
+              dense
               title="Wibracje"
               switchValue={settings.vibration}
               onPress={() => updateSettings({ vibration: !settings.vibration })}
@@ -141,7 +147,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: screen.paddingHorizontal,
     paddingTop: space.xs,
-    paddingBottom: space.md,
+    paddingBottom: space.xs,
   },
   header: {
     flexDirection: 'row',
@@ -149,7 +155,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    marginTop: space.lg,
+    marginTop: space.md,
   },
   lead: {
     marginTop: space.xs,
@@ -162,16 +168,17 @@ const styles = StyleSheet.create({
     marginTop: space.md,
   },
   cards: {
-    gap: space.sm,
-    marginTop: screen.sectionGap,
+    gap: 10,
+    marginTop: space.md,
   },
   section: {
-    marginTop: screen.sectionGap,
+    marginTop: space.md,
   },
   timeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.xs,
+    paddingVertical: space.sm,
   },
   timeCardText: {
     flex: 1,
@@ -189,13 +196,13 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flexGrow: 1,
-    minHeight: space.md,
+    minHeight: space.sm,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.xs,
-    marginTop: space.md,
+    marginTop: space.sm,
   },
 });
