@@ -211,14 +211,16 @@ function BreakView({ session, now }: { session: Session; now: number }) {
           </Text>
         </ProgressRing>
 
-        <View style={styles.breakHint}>
-          <Icon name="repeat" size={18} color={colors.breakTextMuted} />
-          <Text style={[type.body, { color: colors.breakTextMuted }]}>
-            {isLastCycle(session)
-              ? 'To ostatnia przerwa, potem koniec sesji'
-              : `Potem automatycznie wracamy do ${workMin} min pracy`}
-          </Text>
-        </View>
+        {/* Ikona w środku tekstu – wtedy całość jest wyśrodkowana, także gdy tekst się zawinie. */}
+        <Text style={[type.body, styles.breakHint]} textBreakStrategy="balanced">
+          <View style={styles.inlineIcon}>
+            <Icon name="repeat" size={18} color={colors.breakTextMuted} />
+          </View>
+          {'  '}
+          {isLastCycle(session)
+            ? 'To ostatnia przerwa, potem koniec sesji'
+            : `Potem automatycznie wracamy do ${workMin} min pracy`}
+        </Text>
       </View>
 
       <View style={styles.breakButtons}>
@@ -326,9 +328,13 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
   },
   breakHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
+    color: colors.breakTextMuted,
+    textAlign: 'center',
+  },
+  inlineIcon: {
+    width: 18,
+    height: 18,
+    transform: [{ translateY: 3 }],
   },
   breakButtons: {
     flexDirection: 'row',
