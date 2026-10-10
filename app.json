@@ -7,6 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "zerknij",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E1311",
     "android": {
       "package": "com.szymon.zerknij",
       "adaptiveIcon": {
@@ -25,6 +26,15 @@
           "backgroundColor": "#0E1311",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      "expo-sqlite",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-navigation-bar",
+        {
+          "style": "light",
+          "enforceContrast": false
         }
       ]
     ],
