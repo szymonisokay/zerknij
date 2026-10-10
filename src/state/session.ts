@@ -1,138 +1,87 @@
+import { useSyncExternalStore } from 'react';
+import { PermissionsAndroid } from 'react-native';
+
 import { dayKey, nextTimeOfDay } from '@/lib/format';
 
-import { settingsStore } from './settings';
-import { createStore } from './store';
+import Timer, { type Session, type Stats, type TimerState } from '../../modules/zerknij-timer';
+import { settingsStore, type Settings } from './settings';
 
-export type Phase = 'work' | 'break';
+export type { Phase, Session } from '../../modules/zerknij-timer';
 
-export type Session = {
-  phase: Phase;
-  /** Numer bieżącego cyklu (praca + przerwa), od 1. */
-  cycle: number;
-  workMs: number;
-  breakMs: number;
-  /** Kiedy kończy się bieżąca faza (gdy timer działa). */
-  endsAt: number;
-  /** Ile zostało z fazy w chwili pauzy; null = timer działa. */
-  pausedLeft: number | null;
-  startedAt: number;
-  maxCycles: number | null;
-  stopAt: number | null;
-  notifyOnEnd: boolean;
+/*
+ * Sesją zarządza natywny moduł (działa też w tle, gdy JS śpi). Tutaj trzymamy tylko kopię
+ * jego stanu dla Reacta – aktualizowaną zdarzeniem onChange i wynikiem każdej akcji.
+ */
+let state: TimerState = Timer.getState();
+const listeners = new Set<() => void>();
+
+function setState(next: TimerState) {
+  state = next;
+  listeners.forEach((listener) => listener());
+}
+
+Timer.addListener('onChange', setState);
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 };
 
-export type SessionEvent = 'breakStart' | 'breakEnd' | 'end';
+const useTimerState = () => useSyncExternalStore(subscribe, () => state);
 
-export const sessionStore = createStore<Session | null>('session', (saved) => (saved as Session) ?? null);
-export const useSession = sessionStore.use;
+export const useSession = () => useTimerState().session;
 
-/** Bieżący czas zaokrąglony do pełnej sekundy – dzięki temu odliczanie zmienia się równo z zegarem. */
-export const nowSec = () => Math.round(Date.now() / 1000) * 1000;
+export function useTodayStats(now: number): Stats {
+  const { stats } = useTimerState();
+  const day = dayKey(now);
+  return stats.day === day ? stats : { day, breaks: 0, skipped: 0 };
+}
 
 export const timeLeft = (s: Session, now: number) => s.pausedLeft ?? Math.max(0, s.endsAt - now);
 export const phaseLength = (s: Session) => (s.phase === 'work' ? s.workMs : s.breakMs);
 export const isLastCycle = (s: Session) => s.maxCycles != null && s.cycle >= s.maxCycles;
 
-export function startSession(now = nowSec()) {
+export async function startSession() {
+  // Bez zgody na powiadomienia timer działa, ale nie widać go w tle – pytamy przy pierwszym starcie.
+  await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS).catch(() => null);
   const st = settingsStore.get();
-  const workMs = st.workMin * 60_000;
-  sessionStore.set({
-    phase: 'work',
-    cycle: 1,
-    workMs,
-    breakMs: st.breakSec * 1000,
-    endsAt: now + workMs,
-    pausedLeft: null,
-    startedAt: now,
-    maxCycles: st.limitMode === 'count' ? st.limitCount : null,
-    stopAt: st.limitMode === 'until' ? nextTimeOfDay(st.limitTime, now) : null,
-    notifyOnEnd: st.limitMode !== 'none' && st.notifyOnEnd,
-  });
-}
-
-export function stopSession() {
-  sessionStore.set(null);
-}
-
-export function togglePause(now = nowSec()) {
-  sessionStore.set((s) => {
-    if (!s) return s;
-    return s.pausedLeft == null
-      ? { ...s, pausedLeft: Math.max(0, s.endsAt - now) }
-      : { ...s, endsAt: now + s.pausedLeft, pausedLeft: null };
-  });
-}
-
-/** „Przerwa teraz” – kończy pracę przed czasem. */
-export function breakNow(now = nowSec()) {
-  sessionStore.set((s) =>
-    s?.phase === 'work' ? { ...s, phase: 'break', endsAt: now + s.breakMs, pausedLeft: null } : s,
+  // Samsung usypia aplikacje w tle – raz prosimy o zwolnienie z optymalizacji baterii.
+  if (!st.askedBackground && !Timer.isBackgroundUnrestricted()) {
+    settingsStore.set({ ...st, askedBackground: true });
+    Timer.requestBackgroundUnrestricted();
+  }
+  setState(
+    Timer.start({
+      workMs: st.workMin * 60_000,
+      breakMs: st.breakSec * 1000,
+      maxCycles: st.limitMode === 'count' ? st.limitCount : null,
+      stopAt: st.limitMode === 'until' ? nextTimeOfDay(st.limitTime, Date.now()) : null,
+      notifyOnEnd: st.limitMode !== 'none' && st.notifyOnEnd,
+    }),
   );
 }
 
-/** „Pomiń przerwę” – od razu następny cykl pracy (albo koniec sesji, jeśli to był ostatni). */
-export function skipBreak(now = nowSec()) {
-  const s = sessionStore.get();
-  if (s?.phase !== 'break') return;
-  bumpStat('skipped', now);
-  sessionStore.set(nextCycle(s, now));
-}
+export const togglePause = () => setState(Timer.togglePause());
+export const breakNow = () => setState(Timer.breakNow());
+export const skipBreak = () => setState(Timer.skipBreak());
+export const stopSession = () => setState(Timer.stop());
 
-/**
- * Przesuwa sesję o wszystkie fazy, które minęły do `now` (także gdy aplikacja była w tle).
- * Zwraca zdarzenia, żeby ekran mógł zawibrować.
- */
-export function advance(now = Date.now()): SessionEvent[] {
-  let s = sessionStore.get();
-  if (!s) return [];
-  const events: SessionEvent[] = [];
+/** Przesuwa sesję o fazy, które minęły (zmiany przyjdą zdarzeniem onChange). */
+export const syncSession = () => {
+  Timer.sync();
+};
 
-  while (s) {
-    if (s.stopAt != null && now >= s.stopAt && (s.pausedLeft != null || s.stopAt <= s.endsAt)) {
-      s = null;
-      events.push('end');
-    } else if (s.pausedLeft == null && now >= s.endsAt) {
-      if (s.phase === 'work') {
-        s = { ...s, phase: 'break', endsAt: s.endsAt + s.breakMs };
-        events.push('breakStart');
-      } else {
-        bumpStat('breaks', s.endsAt);
-        s = nextCycle(s, s.endsAt);
-        events.push(s ? 'breakEnd' : 'end');
-      }
-    } else {
-      break;
-    }
-  }
-
-  if (events.length) sessionStore.set(s);
-  return events;
-}
-
-function nextCycle(s: Session, at: number): Session | null {
-  if (isLastCycle(s)) return null;
-  return { ...s, phase: 'work', cycle: s.cycle + 1, endsAt: at + s.workMs, pausedLeft: null };
-}
-
-/* ───────────── Statystyki dzienne ───────────── */
-
-type Stats = { day: string; breaks: number; skipped: number };
-
-const statsStore = createStore<Stats>(
-  'stats',
-  (saved) => (saved as Stats) ?? { day: '', breaks: 0, skipped: 0 },
-);
-
-function bumpStat(field: 'breaks' | 'skipped', at: number) {
-  const day = dayKey(at);
-  statsStore.set((prev) => {
-    const base = prev.day === day ? prev : { day, breaks: 0, skipped: 0 };
-    return { ...base, [field]: base[field] + 1 };
+/* Ustawienia potrzebne w tle (dźwięki, wibracje, pełny ekran) przekazujemy do modułu natywnego. */
+function pushConfig(s: Settings) {
+  Timer.setConfig({
+    sound: s.sound,
+    vibration: s.vibration,
+    breakStartSound: s.breakStartSound?.uri ?? null,
+    breakEndSound: s.breakEndSound?.uri ?? null,
+    fullScreenBreak: s.fullScreenBreak,
+    pauseOnScreenOff: s.pauseOnScreenOff,
   });
 }
 
-export function useTodayStats(now: number): Stats {
-  const stats = statsStore.use();
-  const day = dayKey(now);
-  return stats.day === day ? stats : { day, breaks: 0, skipped: 0 };
-}
+pushConfig(settingsStore.get());
+settingsStore.subscribe(() => pushConfig(settingsStore.get()));

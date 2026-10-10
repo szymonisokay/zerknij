@@ -9,7 +9,7 @@ import { LimitSheet } from '@/components/limit-sheet';
 import { ListGroup, ListRow } from '@/components/list';
 import { IconButton } from '@/components/round-button';
 import { plural } from '@/lib/format';
-import { updateSettings, useSettings, type Settings } from '@/state/settings';
+import { chooseSound, updateSettings, useSettings, type Settings } from '@/state/settings';
 import { colors, screen, space, type } from '@/theme';
 
 export default function SettingsScreen() {
@@ -28,20 +28,19 @@ export default function SettingsScreen() {
         <Section title="Sygnały">
           <ListGroup>
             <ListRow title="Dźwięki" switchValue={s.sound} onPress={toggle('sound')} />
-            {/* Wybór dźwięku systemowego dojdzie razem z natywnym modułem powiadomień. */}
             <ListRow
               title="Start przerwy"
-              subtitle={`Systemowy · ${s.breakStartSound ?? 'domyślny'}`}
+              subtitle={`Systemowy · ${s.breakStartSound?.title ?? 'domyślny'}`}
               chevron
               disabled={!s.sound}
-              onPress={() => {}}
+              onPress={() => chooseSound('breakStartSound')}
             />
             <ListRow
               title="Koniec przerwy"
-              subtitle={`Systemowy · ${s.breakEndSound ?? 'domyślny'}`}
+              subtitle={`Systemowy · ${s.breakEndSound?.title ?? 'domyślny'}`}
               chevron
               disabled={!s.sound}
-              onPress={() => {}}
+              onPress={() => chooseSound('breakEndSound')}
             />
             <ListRow title="Wibracje" switchValue={s.vibration} onPress={toggle('vibration')} />
           </ListGroup>

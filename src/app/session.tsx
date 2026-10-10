@@ -9,15 +9,15 @@ import { HorizonIllustration, Icon } from '@/components/icon';
 import { PhaseBadge } from '@/components/phase-badge';
 import { ProgressRing } from '@/components/progress-ring';
 import { RoundButton } from '@/components/round-button';
-import { click, phaseVibration } from '@/lib/feedback';
+import { click } from '@/lib/feedback';
 import { breakLabel, clock, durationLabel, plural } from '@/lib/format';
 import {
-  advance,
   breakNow,
   isLastCycle,
   phaseLength,
   skipBreak,
   stopSession,
+  syncSession,
   timeLeft,
   togglePause,
   useSession,
@@ -30,7 +30,7 @@ import { colors, motion, radius, screen, size, space, type } from '@/theme';
 export default function SessionScreen() {
   const session = useSession();
   const { keepAwakeOnBreak } = useSettings();
-  const now = useSessionClock();
+  const now = useNow();
   const isBreak = session?.phase === 'break';
 
   const [phaseAnim] = useState(() => new Animated.Value(isBreak ? 1 : 0));
@@ -67,25 +67,25 @@ export default function SessionScreen() {
 }
 
 /**
- * Odświeża ekran co pełną sekundę i przesuwa sesję do kolejnych faz.
- * Timery JS nie działają w tle, więc po powrocie do aplikacji nadrabiamy od razu (bez wibracji).
+ * Odświeża ekran co pełną sekundę. Fazy przełącza moduł natywny (także w tle) –
+ * tu tylko go szturchamy, żeby zmiana na ekranie wypadła dokładnie o czasie.
  */
-function useSessionClock() {
+function useNow() {
   const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-    const tick = (live: boolean) => {
+    const tick = () => {
+      syncSession();
       const t = Date.now();
-      if (advance(t).length && live) phaseVibration();
       setNow(t);
-      timer = setTimeout(() => tick(true), 1000 - (t % 1000) + 10);
+      timer = setTimeout(tick, 1000 - (t % 1000) + 10);
     };
-    tick(false);
+    tick();
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return;
       clearTimeout(timer);
-      tick(false);
+      tick();
     });
     return () => {
       clearTimeout(timer);

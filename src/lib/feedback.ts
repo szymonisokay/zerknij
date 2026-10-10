@@ -1,14 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import { Vibration } from 'react-native';
 
-import { settingsStore } from '@/state/settings';
-
-/** Krótki „klik” przy Start, Pauza i Stop. */
+/** Krótki „klik” przy Start, Pauza i Stop. (Wibracje przy zmianie fazy robi moduł natywny.) */
 export function click() {
   Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => {});
-}
-
-/** Wibracja przy zmianie fazy – tylko gdy włączone „Wibracje”. */
-export function phaseVibration() {
-  if (settingsStore.get().vibration) Vibration.vibrate([0, 250, 150, 250]);
 }

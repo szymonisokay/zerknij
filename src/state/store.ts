@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 export type Store<T> = {
   get: () => T;
   set: (next: T | ((prev: T) => T)) => void;
+  subscribe: (listener: () => void) => () => void;
   use: () => T;
 };
 
@@ -15,7 +16,9 @@ export function createStore<T>(key: string, load: (saved: unknown) => T): Store<
   const get = () => state;
   const subscribe = (listener: () => void) => {
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   };
 
   return {
@@ -25,6 +28,7 @@ export function createStore<T>(key: string, load: (saved: unknown) => T): Store<
       Storage.setItemSync(key, JSON.stringify(state));
       listeners.forEach((listener) => listener());
     },
+    subscribe,
     use: () => useSyncExternalStore(subscribe, get),
   };
 }

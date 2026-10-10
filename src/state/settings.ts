@@ -1,14 +1,18 @@
+import Timer from '../../modules/zerknij-timer';
 import { createStore } from './store';
 
 export type LimitMode = 'none' | 'count' | 'until';
+
+/** Dźwięk systemowy; null w ustawieniach = domyślny dźwięk powiadomień. */
+export type Sound = { uri: string; title: string };
 
 export type Settings = {
   workMin: number;
   breakSec: number;
   sound: boolean;
   vibration: boolean;
-  breakStartSound: string | null;
-  breakEndSound: string | null;
+  breakStartSound: Sound | null;
+  breakEndSound: Sound | null;
   fullScreenBreak: boolean;
   keepAwakeOnBreak: boolean;
   limitMode: LimitMode;
@@ -17,6 +21,8 @@ export type Settings = {
   limitTime: string;
   notifyOnEnd: boolean;
   pauseOnScreenOff: boolean;
+  /** Czy już raz pytaliśmy o zwolnienie z optymalizacji baterii. */
+  askedBackground: boolean;
 };
 
 export const WORK_MIN = { min: 1, max: 90, step: 1 };
@@ -43,6 +49,7 @@ const defaults: Settings = {
   limitTime: '17:00',
   notifyOnEnd: true,
   pauseOnScreenOff: false,
+  askedBackground: false,
 };
 
 export const settingsStore = createStore<Settings>('settings', (saved) => ({
@@ -54,4 +61,11 @@ export const useSettings = settingsStore.use;
 
 export function updateSettings(patch: Partial<Settings>) {
   settingsStore.set((prev) => ({ ...prev, ...patch }));
+}
+
+/** Systemowy wybór dźwięku dla początku albo końca przerwy. */
+export async function chooseSound(key: 'breakStartSound' | 'breakEndSound') {
+  const picked = await Timer.pickSound(settingsStore.get()[key]?.uri ?? null);
+  if (!picked) return;
+  updateSettings({ [key]: picked.uri ? { uri: picked.uri, title: picked.title ?? 'Dźwięk' } : null });
 }

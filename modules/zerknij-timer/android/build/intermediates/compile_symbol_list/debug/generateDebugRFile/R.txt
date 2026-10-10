@@ -1,0 +1,1 @@
+int drawable zerknij_notification 0x0
