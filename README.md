@@ -14,6 +14,8 @@ npm run build:apk    # APK release (arm64) w android/app/build/outputs/apk/relea
 
 Po zmianach w `app.json` albo w module natywnym: `npx expo prebuild -p android --clean` (`build:apk` robi to sam).
 
+Wersja to `1.0.<liczba commitów>` (liczona w `app.config.ts`) – każdy APK z nowszego kodu ma wyższy numer, widoczny w stopce ustawień.
+
 ## Struktura
 
 - `src/app/` – ekrany (Expo Router)
@@ -29,6 +31,8 @@ Sesją zarządza moduł natywny, nie JS – dzięki temu liczy także przy zgasz
 - stan sesji jest w SharedPreferences, fazy wynikają ze znaczników czasu,
 - koniec każdej fazy budzi telefon dokładnym alarmem (`setAlarmClock`, stąd ikona budzika na pasku),
 - na czas sesji działa usługa pierwszoplanowa ze stałym powiadomieniem (odliczanie, Pauza / Przerwa teraz / Stop),
-- początek przerwy: dźwięk, wibracja i wyskakujące powiadomienie, a przy zablokowanym telefonie ekran przerwy na pełnym ekranie.
+- początek przerwy: dźwięk, wibracja i wyskakujące powiadomienie, a przy zablokowanym telefonie ekran przerwy na pełnym ekranie,
+- przerwę można odłożyć o 5 minut („Za 5 min”) z ekranu przerwy albo z powiadomienia,
+- po restarcie telefonu i po aktualizacji aplikacji trwająca sesja wraca sama.
 
 Na Samsungu warto zostawić aplikacji baterię „Bez ograniczeń” – przy pierwszym starcie aplikacja sama o to zapyta.

@@ -38,7 +38,7 @@ export function useTodayStats(now: number): Stats {
 }
 
 export const timeLeft = (s: Session, now: number) => s.pausedLeft ?? Math.max(0, s.endsAt - now);
-export const phaseLength = (s: Session) => (s.phase === 'work' ? s.workMs : s.breakMs);
+export const phaseLength = (s: Session) => s.phaseMs;
 export const isLastCycle = (s: Session) => s.maxCycles != null && s.cycle >= s.maxCycles;
 
 export async function startSession() {
@@ -64,6 +64,7 @@ export async function startSession() {
 export const togglePause = () => setState(Timer.togglePause());
 export const breakNow = () => setState(Timer.breakNow());
 export const skipBreak = () => setState(Timer.skipBreak());
+export const snoozeBreak = () => setState(Timer.snoozeBreak());
 export const stopSession = () => setState(Timer.stop());
 
 /** Przesuwa sesję o fazy, które minęły (zmiany przyjdą zdarzeniem onChange). */

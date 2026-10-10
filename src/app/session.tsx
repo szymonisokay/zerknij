@@ -9,6 +9,7 @@ import { HorizonIllustration, Icon } from '@/components/icon';
 import { PhaseBadge } from '@/components/phase-badge';
 import { ProgressRing } from '@/components/progress-ring';
 import { RoundButton } from '@/components/round-button';
+import { Touchable } from '@/components/touchable';
 import { click } from '@/lib/feedback';
 import { breakLabel, clock, durationLabel, plural } from '@/lib/format';
 import {
@@ -16,6 +17,7 @@ import {
   isLastCycle,
   phaseLength,
   skipBreak,
+  snoozeBreak,
   stopSession,
   syncSession,
   timeLeft,
@@ -25,7 +27,7 @@ import {
   type Session,
 } from '@/state/session';
 import { useSettings } from '@/state/settings';
-import { colors, motion, radius, screen, size, space, type } from '@/theme';
+import { colors, motion, radius, ripple, screen, size, space, type } from '@/theme';
 
 export default function SessionScreen() {
   const session = useSession();
@@ -223,6 +225,16 @@ function BreakView({ session, now }: { session: Session; now: number }) {
         </Text>
       </View>
 
+      <Touchable
+        onPress={() => snoozeBreak()}
+        accessibilityRole="button"
+        accessibilityLabel="Odłóż przerwę o 5 minut"
+        ripple={ripple.break}
+        style={styles.snooze}
+        pressedStyle={{ backgroundColor: colors.breakSurface }}>
+        <Text style={[type.label, styles.snoozeText]}>Za 5 min</Text>
+      </Touchable>
+
       <View style={styles.breakButtons}>
         <Button
           title="Zakończ"
@@ -335,6 +347,20 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     transform: [{ translateY: 3 }],
+  },
+  snooze: {
+    alignSelf: 'center',
+    height: size.chipHeight,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.breakBorder,
+    marginBottom: space.md,
+  },
+  snoozeText: {
+    color: colors.breakText,
+    fontSize: 15,
   },
   breakButtons: {
     flexDirection: 'row',

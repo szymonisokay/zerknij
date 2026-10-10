@@ -44,7 +44,7 @@ object Timer {
     val now = now()
     commit(
       context,
-      Session(Phase.WORK, 1, workMs, breakMs, now + workMs, null, false, now, maxCycles, stopAt, notifyOnEnd),
+      Session(Phase.WORK, 1, workMs, breakMs, now + workMs, workMs, null, false, now, maxCycles, stopAt, notifyOnEnd),
     )
   }
 
@@ -68,6 +68,13 @@ object Timer {
     val now = now()
     stats = stats.bump(now, skippedBreak = true)
     commit(context, s.nextCycle(now))
+  }
+
+  /** „Za 5 min” – odkłada bieżącą przerwę. */
+  @Synchronized
+  fun snoozeBreak(context: Context) {
+    val s = session?.takeIf { it.phase == Phase.BREAK } ?: return
+    commit(context, s.snooze(now()))
   }
 
   @Synchronized

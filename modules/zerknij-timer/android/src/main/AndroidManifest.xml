@@ -9,6 +9,7 @@
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
   <application>
     <service
@@ -23,5 +24,15 @@
     <receiver
       android:name="expo.modules.zerknijtimer.AlarmReceiver"
       android:exported="false" />
+
+    <!-- Chronione zdarzenia systemowe – wysłać je może tylko system. -->
+    <receiver
+      android:name="expo.modules.zerknijtimer.RestoreReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
   </application>
 </manifest>

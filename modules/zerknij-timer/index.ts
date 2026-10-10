@@ -10,6 +10,8 @@ export type Session = {
   breakMs: number;
   /** Kiedy kończy się bieżąca faza (gdy timer działa). */
   endsAt: number;
+  /** Długość bieżącej fazy (po „Za 5 min” krótsza niż workMs). */
+  phaseMs: number;
   /** Ile zostało z fazy w chwili pauzy; null = timer działa. */
   pausedLeft: number | null;
   startedAt: number;
@@ -54,6 +56,8 @@ declare class ZerknijTimerModule extends NativeModule<Events> {
   togglePause(): TimerState;
   breakNow(): TimerState;
   skipBreak(): TimerState;
+  /** „Za 5 min” – odkłada bieżącą przerwę. */
+  snoozeBreak(): TimerState;
   stop(): TimerState;
   setConfig(config: TimerConfig): void;
   /** Czy aplikacja jest zwolniona z optymalizacji baterii. */

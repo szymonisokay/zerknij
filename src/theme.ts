@@ -3,7 +3,7 @@
  *
  * Fonty ładuje src/app/_layout.tsx przez useAppFonts().
  */
-import { Platform, TextStyle, ViewStyle } from 'react-native';
+import { TextStyle, ViewStyle } from 'react-native';
 import {
   useFonts,
   SpaceGrotesk_500Medium,
@@ -86,33 +86,6 @@ export const colors = {
   rippleOnWork: 'rgba(255,255,255,0.22)',
   rippleBreak: 'rgba(244,184,96,0.18)',
 } as const;
-
-/** Paleta zależna od fazy – podmieniaj ją przy przejściu praca ↔ przerwa. */
-export const phase = {
-  work: {
-    background: colors.bg,
-    surface: colors.surface,
-    accent: colors.work,
-    onAccent: colors.onWork,
-    track: colors.surfaceRaised,
-    badgeBg: colors.workSoft,
-    text: colors.text,
-    textSecondary: colors.textSecondary,
-    textMuted: colors.textMuted,
-  },
-  break: {
-    background: colors.breakBg,
-    surface: colors.breakSurface,
-    accent: colors.break,
-    onAccent: colors.onBreak,
-    track: colors.breakSurface,
-    badgeBg: colors.breakSurface,
-    text: colors.breakText,
-    textSecondary: colors.breakTextSecondary,
-    textMuted: colors.breakTextMuted,
-  },
-} as const;
-export type Phase = keyof typeof phase;
 
 /* ───────────── Typografia ───────────── */
 
@@ -219,51 +192,9 @@ export const motion = {
   phaseTransitionMs: 300,
 } as const;
 
-export const focusRing = (color: string = colors.text): ViewStyle =>
-  Platform.select<ViewStyle>({
-    // RN nie ma outline-offset – obrys rysujemy jako border na wrapperze o 3 px większym.
-    default: { borderWidth: 3, borderColor: color, padding: 3, borderRadius: radius.full },
-  })!;
-
 /* ───────────── Gotowe style komponentów ───────────── */
 
 export const components = {
-  buttonPrimary: {
-    height: size.buttonPrimaryHeight,
-    borderRadius: radius.full,
-    backgroundColor: colors.work,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  } as ViewStyle,
-  buttonPrimaryPressed: {
-    backgroundColor: colors.workPressed,
-    transform: [{ scale: motion.pressScale }],
-  } as ViewStyle,
-  buttonDisabled: { backgroundColor: colors.border } as ViewStyle,
-
-  roundPrimary: {
-    width: size.roundPrimary,
-    height: size.roundPrimary,
-    borderRadius: radius.full,
-    backgroundColor: colors.work,
-    alignItems: 'center',
-    justifyContent: 'center',
-  } as ViewStyle,
-  roundSecondary: {
-    width: size.roundSecondary,
-    height: size.roundSecondary,
-    borderRadius: radius.full,
-    backgroundColor: colors.surfaceRaised,
-    alignItems: 'center',
-    justifyContent: 'center',
-  } as ViewStyle,
-  roundSecondaryPressed: {
-    backgroundColor: colors.surfaceRaisedPressed,
-    transform: [{ scale: motion.roundPressScale }],
-  } as ViewStyle,
-
   chip: {
     height: size.chipHeight,
     paddingHorizontal: space.md,
@@ -320,6 +251,3 @@ export const ripple = {
   onWork: { color: colors.rippleOnWork, borderless: false },
   break: { color: colors.rippleBreak, borderless: false },
 } as const;
-
-const theme = { colors, phase, fonts, type, space, screen, radius, size, motion, components, ripple };
-export default theme;

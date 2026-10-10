@@ -28,6 +28,7 @@ class TimerService : Service() {
     const val ACTION_TOGGLE_PAUSE = "expo.modules.zerknijtimer.TOGGLE_PAUSE"
     const val ACTION_BREAK_NOW = "expo.modules.zerknijtimer.BREAK_NOW"
     const val ACTION_SKIP = "expo.modules.zerknijtimer.SKIP"
+    const val ACTION_SNOOZE = "expo.modules.zerknijtimer.SNOOZE"
     const val ACTION_STOP = "expo.modules.zerknijtimer.STOP"
 
     @Volatile
@@ -109,6 +110,7 @@ class TimerService : Service() {
       ACTION_TOGGLE_PAUSE -> Timer.togglePause(this)
       ACTION_BREAK_NOW -> Timer.breakNow(this)
       ACTION_SKIP -> Timer.skipBreak(this)
+      ACTION_SNOOZE -> Timer.snoozeBreak(this)
       ACTION_STOP -> Timer.stop(this)
       else -> Timer.sync(this)
     }
@@ -167,5 +169,17 @@ class AlarmReceiver : BroadcastReceiver() {
     Timer.init(context)
     Timer.sync(context)
     if (Timer.session != null) TimerService.ensureRunning(context)
+  }
+}
+
+/**
+ * Restart telefonu kasuje alarmy, a aktualizacja aplikacji zabija usługę. Po obu zdarzeniach
+ * przywracamy trwającą sesję (nadrabiając fazy, które minęły w międzyczasie).
+ */
+class RestoreReceiver : BroadcastReceiver() {
+  override fun onReceive(context: Context, intent: Intent) {
+    if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+    Timer.init(context)
+    Timer.restore(context)
   }
 }

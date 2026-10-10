@@ -43,7 +43,7 @@ object Notifications {
     val text =
       if (isBreak) "Coś oddalonego o ok. 6 m. Wrócimy sami."
       else "${s.workMs / 60_000} min / ${Format.breakLabel(s.breakMs / 1000)}"
-    val elapsed = 1 - left.toDouble() / s.phaseLength
+    val elapsed = 1 - left.toDouble() / s.phaseMs
 
     val builder = NotificationCompat.Builder(context, CHANNEL_SESSION)
       .setSmallIcon(R.drawable.zerknij_notification)
@@ -63,6 +63,7 @@ object Notifications {
     when {
       isBreak -> builder
         .addAction(0, "Pomiń przerwę", serviceAction(context, TimerService.ACTION_SKIP))
+        .addAction(0, "Za 5 min", serviceAction(context, TimerService.ACTION_SNOOZE))
         .addAction(0, "Stop", serviceAction(context, TimerService.ACTION_STOP))
       s.paused -> builder
         .addAction(0, "Wznów", serviceAction(context, TimerService.ACTION_TOGGLE_PAUSE))
@@ -91,6 +92,7 @@ object Notifications {
       .setTimeoutAfter(s.breakMs)
       .setContentIntent(openApp(context))
       .addAction(0, "Pomiń", serviceAction(context, TimerService.ACTION_SKIP))
+      .addAction(0, "Za 5 min", serviceAction(context, TimerService.ACTION_SNOOZE))
       .addAction(0, "Otwórz", openApp(context))
     if (fullScreen) builder.setFullScreenIntent(openApp(context, requestCode = 1), true)
     manager(context).notify(BREAK_ID, builder.build())

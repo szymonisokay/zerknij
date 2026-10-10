@@ -90,6 +90,11 @@ class ZerknijTimerModule : Module() {
       Timer.snapshot()
     }
 
+    Function("snoozeBreak") {
+      Timer.snoozeBreak(context)
+      Timer.snapshot()
+    }
+
     Function("stop") {
       Timer.stop(context)
       Timer.snapshot()

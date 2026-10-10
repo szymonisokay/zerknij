@@ -7,6 +7,9 @@ import java.util.Locale
 
 enum class Phase(val id: String) { WORK("work"), BREAK("break") }
 
+/** O ile „Za 5 min” odkłada przerwę. */
+const val SNOOZE_MS = 5 * 60_000L
+
 data class Session(
   val phase: Phase,
   /** Numer bieżącego cyklu (praca + przerwa), od 1. */
@@ -15,6 +18,8 @@ data class Session(
   val breakMs: Long,
   /** Kiedy kończy się bieżąca faza (gdy timer działa). */
   val endsAt: Long,
+  /** Długość bieżącej fazy – zwykle workMs/breakMs, po odłożeniu przerwy SNOOZE_MS. */
+  val phaseMs: Long,
   /** Ile zostało z fazy w chwili pauzy; null = timer działa. */
   val pausedLeft: Long?,
   /** Pauza włączona automatycznie po zgaszeniu ekranu – zdejmujemy ją po odblokowaniu. */
@@ -26,8 +31,6 @@ data class Session(
 ) {
   val paused: Boolean get() = pausedLeft != null
   val isLastCycle: Boolean get() = maxCycles != null && cycle >= maxCycles
-  val phaseLength: Long get() = if (phase == Phase.WORK) workMs else breakMs
-
   fun timeLeft(now: Long): Long = pausedLeft ?: maxOf(0L, endsAt - now)
 
   fun pause(now: Long, auto: Boolean = false): Session =
@@ -37,12 +40,23 @@ data class Session(
     if (pausedLeft == null) this else copy(endsAt = now + pausedLeft, pausedLeft = null, autoPaused = false)
 
   fun startBreak(at: Long): Session =
-    copy(phase = Phase.BREAK, endsAt = at + breakMs, pausedLeft = null, autoPaused = false)
+    copy(phase = Phase.BREAK, endsAt = at + breakMs, phaseMs = breakMs, pausedLeft = null, autoPaused = false)
+
+  /** „Za 5 min” – wraca do pracy w tym samym cyklu, przerwa przyjdzie za SNOOZE_MS. */
+  fun snooze(at: Long): Session =
+    copy(phase = Phase.WORK, endsAt = at + SNOOZE_MS, phaseMs = SNOOZE_MS, pausedLeft = null, autoPaused = false)
 
   /** Następny cykl pracy albo null, jeśli to był ostatni. */
   fun nextCycle(at: Long): Session? =
     if (isLastCycle) null
-    else copy(phase = Phase.WORK, cycle = cycle + 1, endsAt = at + workMs, pausedLeft = null, autoPaused = false)
+    else copy(
+      phase = Phase.WORK,
+      cycle = cycle + 1,
+      endsAt = at + workMs,
+      phaseMs = workMs,
+      pausedLeft = null,
+      autoPaused = false,
+    )
 
   fun toMap(): Map<String, Any?> = mapOf(
     "phase" to phase.id,
@@ -50,6 +64,7 @@ data class Session(
     "workMs" to workMs.toDouble(),
     "breakMs" to breakMs.toDouble(),
     "endsAt" to endsAt.toDouble(),
+    "phaseMs" to phaseMs.toDouble(),
     "pausedLeft" to pausedLeft?.toDouble(),
     "startedAt" to startedAt.toDouble(),
     "maxCycles" to maxCycles,
@@ -63,6 +78,7 @@ data class Session(
     put("workMs", workMs)
     put("breakMs", breakMs)
     put("endsAt", endsAt)
+    put("phaseMs", phaseMs)
     put("pausedLeft", pausedLeft ?: JSONObject.NULL)
     put("autoPaused", autoPaused)
     put("startedAt", startedAt)
@@ -72,19 +88,26 @@ data class Session(
   }
 
   companion object {
-    fun fromJson(json: JSONObject) = Session(
-      phase = if (json.getString("phase") == Phase.BREAK.id) Phase.BREAK else Phase.WORK,
-      cycle = json.getInt("cycle"),
-      workMs = json.getLong("workMs"),
-      breakMs = json.getLong("breakMs"),
-      endsAt = json.getLong("endsAt"),
-      pausedLeft = json.longOrNull("pausedLeft"),
-      autoPaused = json.optBoolean("autoPaused"),
-      startedAt = json.getLong("startedAt"),
-      maxCycles = json.longOrNull("maxCycles")?.toInt(),
-      stopAt = json.longOrNull("stopAt"),
-      notifyOnEnd = json.optBoolean("notifyOnEnd"),
-    )
+    fun fromJson(json: JSONObject): Session {
+      val phase = if (json.getString("phase") == Phase.BREAK.id) Phase.BREAK else Phase.WORK
+      val workMs = json.getLong("workMs")
+      val breakMs = json.getLong("breakMs")
+      return Session(
+        phase = phase,
+        cycle = json.getInt("cycle"),
+        workMs = workMs,
+        breakMs = breakMs,
+        endsAt = json.getLong("endsAt"),
+        // Sesje zapisane przed dodaniem phaseMs: długość wynika z fazy.
+        phaseMs = json.longOrNull("phaseMs") ?: if (phase == Phase.BREAK) breakMs else workMs,
+        pausedLeft = json.longOrNull("pausedLeft"),
+        autoPaused = json.optBoolean("autoPaused"),
+        startedAt = json.getLong("startedAt"),
+        maxCycles = json.longOrNull("maxCycles")?.toInt(),
+        stopAt = json.longOrNull("stopAt"),
+        notifyOnEnd = json.optBoolean("notifyOnEnd"),
+      )
+    }
   }
 }
 
